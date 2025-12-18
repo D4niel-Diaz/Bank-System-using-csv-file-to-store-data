@@ -216,23 +216,29 @@ def transfer(current_user: str):
     while True:
         print("\n=== Transfer ===")
         recipient = input("Enter recipient username: ").strip()
+        
+        # Check if recipient is the same as sender
         if recipient == current_user:
             print("You cannot transfer to yourself.")
             if not _repeat_or_back("transfer"):
                 return
             continue
+            
+        # Check if recipient exists
         if not user_exists(recipient):
             print("Recipient does not exist.")
             if not _repeat_or_back("transfer"):
                 return
             continue
 
+        # Get transfer amount
         amount = _input_amount("Enter amount to transfer: ")
         if amount is None:
             if not _repeat_or_back("transfer"):
                 return
             continue
 
+        # Check if sender has sufficient balance
         sender_balance = get_balance(current_user)
         if amount > sender_balance:
             print("Insufficient balance.")
@@ -240,17 +246,28 @@ def transfer(current_user: str):
                 return
             continue
 
+        # Get recipient's current balance
         recipient_balance = get_balance(recipient)
 
         # Update balances
-        update_balance(current_user, sender_balance - amount)
-        update_balance(recipient, recipient_balance + amount)
-
-        # Record transactions
-        add_transaction(current_user, "TRANSFER OUT", amount, sender_balance - amount, f"To {recipient}")
-        add_transaction(recipient, "TRANSFER IN", amount, recipient_balance + amount, f"From {current_user}")
-
-        print(f"Transferred {amount:.2f} to {recipient}. Your new balance: {(sender_balance - amount):.2f}.")
+        try:
+            # First update recipient's balance (in case of any issues)
+            update_balance(recipient, recipient_balance + amount)
+            # Then update sender's balance
+            update_balance(current_user, sender_balance - amount)
+            
+            # Record transactions
+            add_transaction(current_user, "TRANSFER OUT", amount, sender_balance - amount, f"To {recipient}")
+            add_transaction(recipient, "TRANSFER IN", amount, recipient_balance + amount, f"From {current_user}")
+            
+            print(f"\nTransfer successful!")
+            print(f"Transferred: ${amount:.2f}")
+            print(f"To: {recipient}")
+            print(f"Your new balance: ${(sender_balance - amount):.2f}")
+            
+        except Exception as e:
+            print(f"An error occurred during transfer: {str(e)}")
+            print("Please contact customer support if the issue persists.")
 
         if not _repeat_or_back("transfer"):
             return
